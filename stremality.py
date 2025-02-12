@@ -3,132 +3,198 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 import json
+import traceback
 
 # Configuração da página
-st.set_page_config(page_title="Monitoramento do Rio", layout="wide")
-
-# Função para carregar e processar os dados do JSON
-def load_data(data_json):
-    data = json.loads(data_json)
-    rows = []
-    for row in data['table']['rows']:
-        processed_row = {}
-        for i, col in enumerate(data['table']['cols']):
-            value = row['c'][i]['v'] if row['c'][i] and 'v' in row['c'][i] else None
-            if col['type'] == 'datetime' and value:
-                # Exemplo: "Date(2025,0,3,16,15,11)"
-                value = value.replace('Date(', '').replace(')', '')
-                year, month, day, hour, minute, second = map(int, value.split(','))
-                value = datetime(year, month + 1, day, hour, minute, second)
-            elif col['type'] == 'date' and value:
-                value = value.replace('Date(', '').replace(')', '')
-                year, month, day = map(int, value.split(','))
-                value = datetime(year, month + 1, day)
-            processed_row[col['label']] = value
-        rows.append(processed_row)
-    return pd.DataFrame(rows)
-
-# Título
-st.title("📊 Dashboard de Monitoramento do Rio")
-
-# Carrega os dados do arquivo JSON
-with open('dados.json', 'r', encoding='utf-8') as file:
-    json_data = file.read()
-df = load_data(json_data)
-
-# Converte a coluna "DATA" para datetime e extrai somente a data
-if "DATA" in df.columns:
-    df["DATA"] = pd.to_datetime(df["DATA"], errors='coerce').dt.date
-else:
-    st.error("Coluna 'DATA' não encontrada no conjunto de dados.")
-
-# Calcula as datas válidas removendo os nulos para evitar comparações com float
-valid_dates = df["DATA"].dropna()
-if valid_dates.empty:
-    st.error("Nenhuma data válida encontrada na coluna 'DATA'.")
-    min_date = datetime.today().date()
-    max_date = datetime.today().date()
-else:
-    min_date = valid_dates.min()
-    max_date = valid_dates.max()
-
-# Sidebar: Filtros
-st.sidebar.header("Filtros")
-
-date_range = st.sidebar.date_input(
-    "Selecione o período",
-    [min_date, max_date],
-    min_value=min_date,
-    max_value=max_date
+st.set_page_config(
+    page_title="Monitoramento Hidrológico",
+    layout="wide",
+    page_icon="🌊"
 )
 
-selected_names = st.sidebar.multiselect(
-    "Selecione os operadores",
-    options=df["NOME"].unique(),
-    default=df["NOME"].unique()
-)
+@st.cache_data
+def load_and_process_data(file_path):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            data = json.load(file)
 
-# Filtra os dados com base no período e nos operadores
-mask = (
-    (df["DATA"].between(date_range[0], date_range[1])) &
-    (df["NOME"].isin(selected_names))
-)
-filtered_df = df[mask]
+        # Validação da estrutura do JSON
+        if 'table' not in data or 'cols' not in data['table'] or 'rows' not in data['table']:
+            raise ValueError("Estrutura JSON inválida - formato esperado não encontrado")
 
-# Conteúdo principal: gráficos e métricas
-col1, col2 = st.columns(2)
+        # Mapeamento de tipos
+        type_map = {
+            'datetime': 'datetime',
+            'date': 'date',
+            'number': 'float64',
+            'string': 'object'
+        }
 
-with col1:
-    st.subheader("Nível do Rio ao Longo do Tempo")
-    fig_level = px.line(
-        filtered_df,
-        x="Carimbo de data/hora",
-        y="Nível do Rio (m)",
-        markers=True
-    )
-    st.plotly_chart(fig_level, use_container_width=True)
+        # Processar metadados das colunas
+        cols_meta = []
+        for col in data['table']['cols']:
+            cols_meta.append({
+                'id': col['id'],
+                'label': col['label'],
+                'type': col['type'],
+                'dtype': type_map.get(col['type'], 'object')
+            })
+
+        # Processar linhas
+        processed_rows = []
+        for row in data['table']['rows']:
+            processed_row = {}
+            for i, cell in enumerate(row['c']):
+                col_info = cols_meta[i]
+                value = cell['v'] if cell and 'v' in cell else None
+
+                # Conversão de datas
+                if value and isinstance(value, str) and 'Date(' in value:
+                    try:
+                        date_str = value.replace('Date(', '').replace(')', '')
+                        parts = list(map(int, date_str.split(',')))
+                        
+                        # Ajustar meses zero-based (correção principal)
+                        if len(parts) >= 2:
+                            parts[1] += 1  # Janeiro=0 → 1
+                        
+                        if col_info['type'] == 'datetime':
+                            dt_params = parts[:6] if len(parts) >= 6 else parts[:3] + [0]*3
+                            value = datetime(*dt_params)
+                        elif col_info['type'] == 'date':
+                            value = datetime(*parts[:3])
+                    except Exception as e:
+                        st.error(f"Erro na conversão de data: {value}")
+                        value = None
+                
+                processed_row[col_info['label']] = value
+            
+            processed_rows.append(processed_row)
+
+        df = pd.DataFrame(processed_rows)
+
+        # Converter tipos de dados
+        for col in cols_meta:
+            if col['dtype'] == 'datetime':
+                df[col['label']] = pd.to_datetime(df[col['label']])
+            elif col['dtype'] in ['float64', 'int64']:
+                df[col['label']] = pd.to_numeric(df[col['label']], errors='coerce')
+
+        # Pós-processamento
+        if 'Carimbo de data/hora' in df.columns:
+            df = df.sort_values('Carimbo de data/hora', ascending=False)
+            df['Data'] = df['Carimbo de data/hora'].dt.date
+            df['Hora'] = df['Carimbo de data/hora'].dt.strftime('%H:%M')
+            df = df.dropna(subset=['Carimbo de data/hora'])
+
+        return df
+
+    except json.JSONDecodeError:
+        st.error("Erro na leitura do arquivo JSON - verifique a formatação")
+        return pd.DataFrame()
+    except Exception as e:
+        st.error(f"Erro crítico: {str(e)}")
+        st.code(traceback.format_exc(), language='bash')
+        return pd.DataFrame()
+
+def main():
+    st.title("🌊 Monitoramento Hidrológico em Tempo Real")
     
-    if "Chuva (mm)" in filtered_df.columns:
-        st.subheader("Registro de Chuvas")
-        fig_rain = px.bar(
-            filtered_df,
-            x="Carimbo de data/hora",
-            y="Chuva (mm)"
-        )
-        st.plotly_chart(fig_rain, use_container_width=True)
+    try:
+        df = load_and_process_data('dados.json')
         
-with col2:
-    st.subheader("Status de Assoreamento")
-    fig_silting = px.pie(
-        filtered_df,
-        names="Assoreamento [Nova]",
-        title="Distribuição do Status de Assoreamento"
-    )
-    st.plotly_chart(fig_silting, use_container_width=True)
-    
-    st.subheader("Atividade por Operador")
-    operator_activity = filtered_df["NOME"].value_counts()
-    fig_operators = px.bar(
-        operator_activity,
-        title="Número de Registros por Operador"
-    )
-    st.plotly_chart(fig_operators, use_container_width=True)
+        if df.empty:
+            st.warning("Nenhum dado encontrado no arquivo!")
+            return
 
-# Tabela de dados
-st.subheader("Dados Detalhados")
-st.dataframe(
-    filtered_df.sort_values("Carimbo de data/hora", ascending=False),
-    use_container_width=True
-)
+        # Validação de colunas essenciais
+        required_cols = ['Carimbo de data/hora', 'NOME', 'Nível do Rio (m)']
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            st.error(f"Colunas obrigatórias faltando: {', '.join(missing_cols)}")
+            return
 
-# Métricas principais
-st.subheader("Métricas Principais")
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.metric("Nível Médio do Rio", f"{filtered_df['Nível do Rio (m)'].mean():.2f}m")
-with col2:
-    st.metric("Último Nível Registrado", f"{filtered_df['Nível do Rio (m)'].iloc[-1]:.2f}m")
-with col3:
-    st.metric("Total de Registros", len(filtered_df))
-with col4:
-    st.metric("Número de Operadores", len(filtered_df["NOME"].unique()))
+        # Sidebar - Filtros
+        st.sidebar.header("🔍 Filtros")
+        
+        # Seletor de datas
+        min_date = df['Carimbo de data/hora'].min().date()
+        max_date = df['Carimbo de data/hora'].max().date()
+        date_range = st.sidebar.date_input(
+            "Período de análise:",
+            [min_date, max_date],
+            min_value=min_date,
+            max_value=max_date
+        )
+        
+        # Seletor de operadores
+        operadores = st.sidebar.multiselect(
+            "Operadores responsáveis:",
+            options=df['NOME'].unique(),
+            default=df['NOME'].unique()
+        )
+        
+        # Aplicar filtros
+        filtered_df = df[
+            (df['Carimbo de data/hora'].dt.date >= date_range[0]) &
+            (df['Carimbo de data/hora'].dt.date <= date_range[1]) &
+            (df['NOME'].isin(operadores))
+        ]
+        
+        if filtered_df.empty:
+            st.warning("Nenhum registro encontrado com os filtros atuais!")
+            return
+
+        # Métricas
+        st.header("📊 Indicadores Principais")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            nivel_medio = filtered_df['Nível do Rio (m)'].mean()
+            st.metric("Nível Médio", f"{nivel_medio:.2f}m")
+        with col2:
+            ultimo_nivel = filtered_df.iloc[0]['Nível do Rio (m)']
+            st.metric("Última Medição", f"{ultimo_nivel:.2f}m")
+        with col3:
+            st.metric("Total de Registros", len(filtered_df))
+        with col4:
+            st.metric("Operadores Ativos", len(filtered_df['NOME'].unique()))
+
+        # Visualizações
+        st.header("📈 Análise Temporal")
+        fig = px.line(filtered_df, 
+                     x='Carimbo de data/hora', 
+                     y='Nível do Rio (m)',
+                     title="Variação do Nível do Rio",
+                     markers=True)
+        fig.update_xaxes(rangeslider_visible=True)
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.header("📌 Distribuição de Dados")
+        col5, col6 = st.columns(2)
+        
+        with col5:
+            fig = px.pie(filtered_df, 
+                        names='Assoreamento [Nova]',
+                        title="Status de Assoreamento")
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with col6:
+            fig = px.bar(filtered_df['NOME'].value_counts(), 
+                        title="Atividades por Operador",
+                        labels={'value': 'Registros', 'index': 'Operador'})
+            st.plotly_chart(fig, use_container_width=True)
+
+        # Dados brutos
+        st.header("📁 Dados Completos")
+        st.dataframe(
+            filtered_df.sort_values('Carimbo de data/hora', ascending=False),
+            use_container_width=True,
+            height=400
+        )
+
+    except Exception as e:
+        st.error(f"Erro na aplicação: {str(e)}")
+        st.code(traceback.format_exc(), language='bash')
+
+if __name__ == "__main__":
+    main()
