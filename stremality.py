@@ -12,6 +12,21 @@ st.set_page_config(
     page_icon="🌊"
 )
 
+# Configurando o tema escuro globalmente
+st.markdown("""
+    <style>
+        .stApp {
+            background-color: #0E1117;
+            color: #FAFAFA;
+        }
+        .stMetric {
+            background-color: #262730;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 st.write("Versão do Streamlit:", st.__version__)
 
 sheet_config = {
@@ -37,8 +52,6 @@ def load_sheet_data(sheet_id, gid):
             df['Carimbo de data/hora'] = pd.to_datetime(df['Carimbo de data/hora'], dayfirst=True)
             df['DATA'] = df['Carimbo de data/hora'].dt.date
             df['HORA'] = df['Carimbo de data/hora'].dt.strftime('%H:%M')
-
-            # Ordena o DataFrame por data e hora
             df = df.sort_values(by='Carimbo de data/hora', ascending=True)
 
         if 'Nível do Rio (m)' in df.columns:
@@ -65,7 +78,7 @@ def main():
     
     if st.button("🔄 Atualizar Dados"):
         st.cache_data.clear()
-        st.rerun()()
+        st.rerun()
     
     config = sheet_config[selected_station]
     
@@ -100,7 +113,10 @@ def main():
             default=df['NOME'].unique()
         )
         
-        view_mode = st.sidebar.selectbox("Modo de Visualização do Gráfico Temporal", ["Detalhado", "Agregado (média diária)"])
+        view_mode = st.sidebar.selectbox(
+            "Modo de Visualização do Gráfico Temporal", 
+            ["Detalhado", "Agregado (média diária)"]
+        )
         
         filtered_df = df[
             (df['Carimbo de data/hora'].dt.date >= date_range[0]) &
@@ -113,7 +129,6 @@ def main():
             return
 
         filtered_df = filtered_df.sort_values('Carimbo de data/hora', ascending=False)
-        
         filtered_df_valid = filtered_df[filtered_df['Nível do Rio (m)'] != 0].copy()
 
         st.header("📊 Indicadores Principais")
@@ -133,37 +148,130 @@ def main():
             st.metric("Operadores Ativos", len(filtered_df['NOME'].unique()))
 
         st.header("📈 Análise Temporal")
-        
+
+        # Time range selector
+        time_range = st.radio(
+            "Selecione o período de análise:",
+            ["24 horas", "7 dias", "30 dias", "Personalizado"],
+            horizontal=True
+        )
+
+        # Filter data based on time range
+        current_time = pd.Timestamp.now()
+        if time_range == "24 horas":
+            time_filter = current_time - pd.Timedelta(days=1)
+        elif time_range == "7 dias":
+            time_filter = current_time - pd.Timedelta(days=7)
+        elif time_range == "30 dias":
+            time_filter = current_time - pd.Timedelta(days=30)
+        else:
+            time_filter = filtered_df_valid['Carimbo de data/hora'].min()
+
+        filtered_df_valid = filtered_df_valid[filtered_df_valid['Carimbo de data/hora'] >= time_filter]
+
         if view_mode == "Agregado (média diária)":
-            agg_df = filtered_df_valid.groupby(["DATA", "NOME"], as_index=False).agg({"Nível do Rio (m)": "mean"})
+            agg_df = filtered_df_valid.groupby(["DATA", "NOME"], as_index=False).agg({
+                "Nível do Rio (m)": ["mean", "min", "max"]
+            })
+            agg_df.columns = ["DATA", "NOME", "media", "minimo", "maximo"]
             agg_df["Carimbo de data/hora"] = pd.to_datetime(agg_df["DATA"])
             plot_data = agg_df
-            graph_title = "Variação do Nível do Rio - Agregado (média diária)"
+            
+            fig = px.line(
+                plot_data,
+                x='Carimbo de data/hora',
+                y='media',
+                title="Variação do Nível do Rio - Agregado (média diária)",
+                labels={'media': 'Nível do Rio (m)', 'Carimbo de data/hora': 'Data'},
+                hover_data={
+                    'media': ':.2f',
+                    'minimo': ':.2f',
+                    'maximo': ':.2f',
+                    'NOME': True
+                }
+            )
         else:
             plot_data = filtered_df_valid.copy()
-            graph_title = "Variação do Nível do Rio (valores zero ignorados)"
+            fig = px.line(
+                plot_data,
+                x='Carimbo de data/hora',
+                y='Nível do Rio (m)',
+                title="Variação do Nível do Rio (valores zero ignorados)",
+                labels={'Carimbo de data/hora': 'Data/Hora'},
+                hover_data={
+                    'Nível do Rio (m)': ':.2f',
+                    'NOME': True,
+                    'HORA': True
+                }
+            )
 
+        # Layout customization for dark theme
+        fig.update_layout(
+            template="plotly_dark",
+            plot_bgcolor='rgba(17, 17, 17, 0.8)',
+            paper_bgcolor='rgba(17, 17, 17, 0.8)',
+            font=dict(size=12),
+            legend=dict(
+                yanchor="top",
+                y=0.99,
+                xanchor="left",
+                x=0.01,
+                bgcolor='rgba(17, 17, 17, 0.5)'
+            ),
+            hovermode="x unified",
+            transition_duration=500
+        )
 
-        
-        fig = px.line(
-            plot_data,
-            x='Carimbo de data/hora',
-            y='Nível do Rio (m)',
-            hover_name='NOME',
-            title=graph_title,
-            line_shape='linear',
+        fig.update_xaxes(
+            rangeslider_visible=True,
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            zeroline=True,
+            zerolinecolor='rgba(128, 128, 128, 0.5)',
+            zerolinewidth=1,
+            rangeselector=dict(
+                buttons=list([
+                    dict(count=1, label="1h", step="hour", stepmode="backward"),
+                    dict(count=6, label="6h", step="hour", stepmode="backward"),
+                    dict(count=1, label="1d", step="day", stepmode="backward"),
+                    dict(count=7, label="7d", step="day", stepmode="backward"),
+                    dict(count=1, label="1m", step="month", stepmode="backward"),
+                    dict(count=6, label="6m", step="month", stepmode="backward"),
+                    dict(count=1, label="1a", step="year", stepmode="backward"),
+                    dict(step="all", label="Tudo")
+                ])
+            )
         )
-        fig.update_layout(transition_duration=500, hovermode="x unified", template="plotly_dark")
-        fig.update_xaxes(rangeslider_visible=True, rangeselector=dict(buttons=list([
-            dict(count=1, label="1d", step="day", stepmode="backward"),
-            dict(count=7, label="1s", step="day", stepmode="backward"),
-            dict(count=1, label="1m", step="month", stepmode="backward"),
-            dict(count=6, label="6m", step="month", stepmode="backward"),
-            dict(count=1, label="1a", step="year", stepmode="backward"),
-            dict(step="all")
-        ]))
+
+        fig.update_yaxes(
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            zeroline=True,
+            zerolinecolor='rgba(128, 128, 128, 0.5)',
+            zerolinewidth=1
         )
+
         st.plotly_chart(fig, use_container_width=True)
+
+        # Statistical summary
+        st.subheader("📊 Estatísticas do Período")
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric(
+                "Média do Período",
+                f"{plot_data['Nível do Rio (m)' if view_mode != 'Agregado (média diária)' else 'media'].mean():.2f} m"
+            )
+            
+        with col2:
+            st.metric(
+                "Valor Máximo",
+                f"{plot_data['Nível do Rio (m)' if view_mode != 'Agregado (média diária)' else 'maximo'].max():.2f} m"
+            )
+            
+        with col3:
+            st.metric(
+                "Valor Mínimo",
+                f"{plot_data['Nível do Rio (m)' if view_mode != 'Agregado (média diária)' else 'minimo'].min():.2f} m"
+            )
 
         st.header("📌 Distribuição de Dados")
         col5, col6 = st.columns(2)
@@ -175,6 +283,7 @@ def main():
                     names='Assoreamento [Nova]',
                     title="Status de Assoreamento"
                 )
+                fig_pie.update_layout(template="plotly_dark")
                 st.plotly_chart(fig_pie, use_container_width=True)
             
         with col6:
@@ -187,6 +296,7 @@ def main():
                 title="Atividades por Operador",
                 labels={'Operador': 'Operador', 'Registros': 'Registros'}
             )
+            fig_bar.update_layout(template="plotly_dark")
             st.plotly_chart(fig_bar, use_container_width=True)
 
         st.header("📁 Dados Completos")
