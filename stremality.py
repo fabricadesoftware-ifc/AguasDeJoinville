@@ -38,11 +38,14 @@ def load_sheet_data(sheet_id, gid):
             df['DATA'] = df['Carimbo de data/hora'].dt.date
             df['HORA'] = df['Carimbo de data/hora'].dt.strftime('%H:%M')
 
+            # Ordena o DataFrame por data e hora
+            df = df.sort_values(by='Carimbo de data/hora', ascending=True)
+
         if 'Nível do Rio (m)' in df.columns:
-            df['Nível do Rio (m)'] = pd.to_numeric(df['Nível do Rio (m)'].str.replace(',', '.'), errors='coerce')
+            df['Nível do Rio (m)'] = pd.to_numeric(df['Nível do Rio (m)'].astype(str).str.replace(',', '.'), errors='coerce')
 
         if 'Chuva (mm)' in df.columns:
-            df['Chuva (mm)'] = pd.to_numeric(df['Chuva (mm)'].str.replace(',', '.'), errors='coerce')
+            df['Chuva (mm)'] = pd.to_numeric(df['Chuva (mm)'].astype(str).str.replace(',', '.'), errors='coerce')
 
         return df
 
@@ -139,17 +142,27 @@ def main():
         else:
             plot_data = filtered_df_valid.copy()
             graph_title = "Variação do Nível do Rio (valores zero ignorados)"
+
+
         
         fig = px.line(
             plot_data,
             x='Carimbo de data/hora',
             y='Nível do Rio (m)',
-            color='NOME',
+            hover_name='NOME',
             title=graph_title,
-            markers=True
+            line_shape='linear',
         )
-        fig.update_layout(transition_duration=500, hovermode="x unified")
-        fig.update_xaxes(rangeslider_visible=True)
+        fig.update_layout(transition_duration=500, hovermode="x unified", template="plotly_dark")
+        fig.update_xaxes(rangeslider_visible=True, rangeselector=dict(buttons=list([
+            dict(count=1, label="1d", step="day", stepmode="backward"),
+            dict(count=7, label="1s", step="day", stepmode="backward"),
+            dict(count=1, label="1m", step="month", stepmode="backward"),
+            dict(count=6, label="6m", step="month", stepmode="backward"),
+            dict(count=1, label="1a", step="year", stepmode="backward"),
+            dict(step="all")
+        ]))
+        )
         st.plotly_chart(fig, use_container_width=True)
 
         st.header("📌 Distribuição de Dados")
