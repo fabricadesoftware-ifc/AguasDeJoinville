@@ -149,23 +149,10 @@ def main():
 
         st.header("📈 Análise Temporal")
 
-        # Time range selector
-        time_range = st.radio(
-            "Selecione o período de análise:",
-            ["24 horas", "7 dias", "30 dias", "Personalizado"],
-            horizontal=True
-        )
 
         # Filter data based on time range
         current_time = pd.Timestamp.now()
-        if time_range == "24 horas":
-            time_filter = current_time - pd.Timedelta(days=1)
-        elif time_range == "7 dias":
-            time_filter = current_time - pd.Timedelta(days=7)
-        elif time_range == "30 dias":
-            time_filter = current_time - pd.Timedelta(days=30)
-        else:
-            time_filter = filtered_df_valid['Carimbo de data/hora'].min()
+        time_filter = filtered_df_valid['Carimbo de data/hora'].min()
 
         filtered_df_valid = filtered_df_valid[filtered_df_valid['Carimbo de data/hora'] >= time_filter]
 
