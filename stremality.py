@@ -39,10 +39,21 @@ st.markdown("""
             text-decoration: none;
             font-size: 0.9em;
         }
+        .version{
+            position: absolute;
+            bottom: 0;
+            color: #FFFFFF;
+            opacity: 0.4;
+        }
     </style>
+    <script>
+            console.log("Desenvolvido por: Fabrica De Software");
+    </script>
 """, unsafe_allow_html=True)
 
-st.write("Versão do Streamlit:", st.__version__)
+st.markdown("""
+            <p class="version"> Versão 1.0.0 </p>
+            """ , unsafe_allow_html=True)
 
 sheet_config = {
     "ETA Pirai": {
