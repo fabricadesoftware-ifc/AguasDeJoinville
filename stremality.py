@@ -3,6 +3,7 @@ import pandas as pd # type: ignore
 import plotly.express as px # type: ignore
 import plotly.graph_objects as go # type: ignore
 from plotly.subplots import make_subplots # type: ignore
+from functions import mes_ano_extenso, nome_mes_ano
 from datetime import datetime
 import traceback
 import requests
@@ -338,6 +339,9 @@ def main():
         sorted_df['DATA'] = sorted_df['DATA_ORDENACAO'].dt.strftime('%d/%m/%Y')
         
         sorted_df = sorted_df.drop(columns=['DATA_ORDENACAO'])
+        if 'Carimbo de data/hora' in df.columns:
+            sorted_df['MES_ANO'] = df.apply(lambda row: mes_ano_extenso(row['Carimbo de data/hora'].month, row['Carimbo de data/hora'].year), axis=1)
+        sorted_df = sorted_df
 
         st.dataframe(
             sorted_df,
@@ -345,6 +349,30 @@ def main():
             height=400
         )
 
+        df_mm_mes = sorted_df.groupby(['MES_ANO'])['Chuva (mm)'].sum()
+        # df_mm_mes["nome_mes"] = nome_mes_ano(sorted_df['MES_ANO'].unique().tolist())
+        st.write(df_mm_mes)
+
+        fig = px.bar(
+                df_mm_mes,
+                x=df_mm_mes.index,
+                y='Chuva (mm)',
+                title="Chuva por Mês",
+                labels={'x': 'Mês/Ano', 'y': 'Chuva (mm)'}
+            )
+        fig.update_layout(
+            template="plotly_dark",
+            xaxis=dict(
+                tickangle=-90,
+                # tickmode='linear',
+                # tickvals=df_mm_mes.index
+                title='Meses'
+            ),
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        
     except Exception as e:
         st.error(f"Erro na aplicação: {str(e)}")
         st.code(traceback.format_exc(), language='bash')
