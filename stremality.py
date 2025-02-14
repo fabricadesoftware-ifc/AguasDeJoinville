@@ -32,6 +32,7 @@ st.markdown("""
             position: absolute; 
             right: 0px; 
             bottom: -2em;
+            z-index: 1;
         }
         .custom-text a{
             color: #00BFFF;
