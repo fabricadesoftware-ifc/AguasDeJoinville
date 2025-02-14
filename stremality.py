@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from datetime import datetime
 import traceback
 import requests
@@ -149,13 +151,12 @@ def main():
 
         st.header("📈 Análise Temporal")
 
-
-        # Filter data based on time range
+        # Para o gráfico, filtramos novamente dados válidos
         current_time = pd.Timestamp.now()
         time_filter = filtered_df_valid['Carimbo de data/hora'].min()
-
         filtered_df_valid = filtered_df_valid[filtered_df_valid['Carimbo de data/hora'] >= time_filter]
 
+        # Se o modo for Agregado, usamos a agregação (apenas Nível do Rio)
         if view_mode == "Agregado (média diária)":
             agg_df = filtered_df_valid.groupby(["DATA", "NOME"], as_index=False).agg({
                 "Nível do Rio (m)": ["mean", "min", "max"]
@@ -178,82 +179,102 @@ def main():
                 }
             )
         else:
+            # No modo Detalhado, se a coluna "Chuva (mm)" existir, usamos eixos secundários
             plot_data = filtered_df_valid.copy()
-            fig = px.line(
-                plot_data,
-                x='Carimbo de data/hora',
-                y='Nível do Rio (m)',
-                title="Variação do Nível do Rio (valores zero ignorados)",
-                labels={'Carimbo de data/hora': 'Data/Hora'},
-                hover_data={
-                    'Nível do Rio (m)': ':.2f',
-                    'NOME': True,
-                    'HORA': True
-                }
-            )
-
-        # Layout customization for dark theme
-        fig.update_layout(
-            template="plotly_dark",
-            plot_bgcolor='rgba(17, 17, 17, 0.8)',
-            paper_bgcolor='rgba(17, 17, 17, 0.8)',
-            font=dict(size=12),
-            legend=dict(
-                yanchor="top",
-                y=0.99,
-                xanchor="left",
-                x=0.01,
-                bgcolor='rgba(17, 17, 17, 0.5)'
-            ),
-            hovermode="x unified",
-            transition_duration=500
-        )
-
-        fig.update_xaxes(
-            rangeslider_visible=True,
-            gridcolor='rgba(128, 128, 128, 0.2)',
-            zeroline=True,
-            zerolinecolor='rgba(128, 128, 128, 0.5)',
-            zerolinewidth=1,
-            rangeselector=dict(
-                buttons=list([
-                    dict(count=1, label="1h", step="hour", stepmode="backward"),
-                    dict(count=6, label="6h", step="hour", stepmode="backward"),
-                    dict(count=1, label="1d", step="day", stepmode="backward"),
-                    dict(count=7, label="7d", step="day", stepmode="backward"),
-                    dict(count=1, label="1m", step="month", stepmode="backward"),
-                    dict(count=6, label="6m", step="month", stepmode="backward"),
-                    dict(count=1, label="1a", step="year", stepmode="backward"),
-                    dict(step="all", label="Tudo")
-                ])
-            )
-        )
-
-        fig.update_yaxes(
-            gridcolor='rgba(128, 128, 128, 0.2)',
-            zeroline=True,
-            zerolinecolor='rgba(128, 128, 128, 0.5)',
-            zerolinewidth=1
-        )
-
+            if "Chuva (mm)" in plot_data.columns:
+                fig = make_subplots(specs=[[{"secondary_y": True}]])
+                # Traço do nível do rio
+                fig.add_trace(
+                    go.Scatter(
+                        x=plot_data["Carimbo de data/hora"],
+                        y=plot_data["Nível do Rio (m)"],
+                        mode="lines",
+                        name="Nível do Rio (m)",
+                        hovertemplate="Data: %{x}<br>Nível: %{y:.2f} m"
+                    ),
+                    secondary_y=False
+                )
+                # Traço da chuva
+                fig.add_trace(
+                    go.Scatter(
+                        x=plot_data["Carimbo de data/hora"],
+                        y=plot_data["Chuva (mm)"],
+                        mode="lines",
+                        name="Chuva (mm)",
+                        hovertemplate="Data: %{x}<br>Chuva: %{y:.2f} mm"
+                    ),
+                    secondary_y=True
+                )
+                fig.update_layout(
+                    title="Variação do Nível do Rio e Chuva",
+                    template="plotly_dark",
+                    plot_bgcolor='rgba(17, 17, 17, 0.8)',
+                    paper_bgcolor='rgba(17, 17, 17, 0.8)',
+                    font=dict(size=12),
+                    legend=dict(
+                        yanchor="top",
+                        y=0.99,
+                        xanchor="left",
+                        x=0.01,
+                        bgcolor='rgba(17, 17, 17, 0.5)'
+                    ),
+                    hovermode="x unified",
+                    transition_duration=500
+                )
+                fig.update_xaxes(
+                    rangeslider_visible=True,
+                    gridcolor='rgba(128, 128, 128, 0.2)',
+                    zeroline=True,
+                    zerolinecolor='rgba(128, 128, 128, 0.5)',
+                    zerolinewidth=1
+                )
+                fig.update_yaxes(
+                    gridcolor='rgba(128, 128, 128, 0.2)',
+                    zeroline=True,
+                    zerolinecolor='rgba(128, 128, 128, 0.5)',
+                    zerolinewidth=1,
+                    title_text="Nível do Rio (m)",
+                    secondary_y=False
+                )
+                fig.update_yaxes(
+                    gridcolor='rgba(128, 128, 128, 0.2)',
+                    zeroline=True,
+                    zerolinecolor='rgba(128, 128, 128, 0.5)',
+                    zerolinewidth=1,
+                    title_text="Chuva (mm)",
+                    secondary_y=True
+                )
+            else:
+                # Se não houver coluna de chuva, plota somente Nível do Rio
+                fig = px.line(
+                    plot_data,
+                    x='Carimbo de data/hora',
+                    y='Nível do Rio (m)',
+                    title="Variação do Nível do Rio (valores zero ignorados)",
+                    labels={'Carimbo de data/hora': 'Data/Hora'},
+                    hover_data={
+                        'Nível do Rio (m)': ':.2f',
+                        'NOME': True,
+                        'HORA': True
+                    }
+                )
+                fig.update_layout(template="plotly_dark")
+        
         st.plotly_chart(fig, use_container_width=True)
 
         # Statistical summary
         st.subheader("📊 Estatísticas do Período")
         col1, col2, col3 = st.columns(3)
-
         with col1:
             st.metric(
                 "Média do Período",
                 f"{plot_data['Nível do Rio (m)' if view_mode != 'Agregado (média diária)' else 'media'].mean():.2f} m"
             )
-            
         with col2:
             st.metric(
                 "Valor Máximo",
                 f"{plot_data['Nível do Rio (m)' if view_mode != 'Agregado (média diária)' else 'maximo'].max():.2f} m"
             )
-            
         with col3:
             st.metric(
                 "Valor Mínimo",
@@ -262,7 +283,6 @@ def main():
 
         st.header("📌 Distribuição de Dados")
         col5, col6 = st.columns(2)
-        
         with col5:
             if 'Assoreamento [Nova]' in filtered_df.columns:
                 fig_pie = px.pie(
@@ -272,7 +292,14 @@ def main():
                 )
                 fig_pie.update_layout(template="plotly_dark")
                 st.plotly_chart(fig_pie, use_container_width=True)
-            
+            elif 'Captação [Gradeamento]' in filtered_df.columns:
+                fig_pie = px.pie(
+                    filtered_df,
+                    names='Captação [Gradeamento]',
+                    title="Status de Captação"
+                )
+                fig_pie.update_layout(template="plotly_dark")
+                st.plotly_chart(fig_pie, use_container_width=True)
         with col6:
             df_counts = filtered_df['NOME'].value_counts().reset_index()
             df_counts.columns = ['Operador', 'Registros']
