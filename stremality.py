@@ -1,8 +1,8 @@
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import streamlit as st # type: ignore
+import pandas as pd # type: ignore
+import plotly.express as px # type: ignore
+import plotly.graph_objects as go # type: ignore
+from plotly.subplots import make_subplots # type: ignore
 from datetime import datetime
 import traceback
 import requests
@@ -33,11 +33,11 @@ st.markdown("""
             right: 0px; 
             bottom: -2em;
         }
-            .custom-text a{
-                color: #00BFFF;
-                text-decoration: none;
-                font-size: 0.9em;
-            }
+        .custom-text a{
+            color: #00BFFF;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -87,11 +87,8 @@ def load_sheet_data(sheet_id, gid):
 def main():
     st.title("🌊 Monitoramento Hidrológico em Tempo Real")
     
-
-   
-
-    
     selected_station = st.sidebar.radio("Selecione a Estação", list(sheet_config.keys()))
+
     st.sidebar.write(f"Estação selecionada: **{selected_station}**")
     
     if st.button("🔄 Atualizar Dados"):
@@ -124,7 +121,6 @@ def main():
             min_value=min_date,
             max_value=max_date
         )
-        
         
         view_mode = st.sidebar.selectbox(
             "Modo de Visualização do Gráfico Temporal", 
@@ -159,19 +155,16 @@ def main():
         with col4:
             st.metric("Operadores Ativos", len(filtered_df['NOME'].unique()))
 
-
         st.markdown("""
         <p class="custom-text">Desenvolvido por: <a href="https://fabricadesoftware.ifc.edu.br/" target="_blank">Fabrica De Software</a> <br/> Professor Responsável: <a href="https://github.com/ldmfabio" target="_blank">Fábio Longo De Moura</a> <br/> Alunos: <a href="https://github.com/jonatasperaza" target="_blank">Jonatas Peraza</a></p>
     """, unsafe_allow_html=True)
 
         st.header("📈 Análise Temporal")
 
-        # Para o gráfico, filtramos novamente dados válidos
         current_time = pd.Timestamp.now()
         time_filter = filtered_df_valid['Carimbo de data/hora'].min()
         filtered_df_valid = filtered_df_valid[filtered_df_valid['Carimbo de data/hora'] >= time_filter]
 
-        # Se o modo for Agregado, usamos a agregação (apenas Nível do Rio)
         if view_mode == "Agregado (média diária)":
             agg_df = filtered_df_valid.groupby(["DATA", "NOME"], as_index=False).agg({
                 "Nível do Rio (m)": ["mean", "min", "max"]
@@ -194,11 +187,9 @@ def main():
                 }
             )
         else:
-            # No modo Detalhado, se a coluna "Chuva (mm)" existir, usamos eixos secundários
             plot_data = filtered_df_valid.copy()
             if "Chuva (mm)" in plot_data.columns:
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
-                # Traço do nível do rio
                 fig.add_trace(
                     go.Scatter(
                         x=plot_data["Carimbo de data/hora"],
@@ -209,7 +200,6 @@ def main():
                     ),
                     secondary_y=False
                 )
-                # Traço da chuva
                 fig.add_trace(
                     go.Scatter(
                         x=plot_data["Carimbo de data/hora"],
@@ -260,7 +250,6 @@ def main():
                     secondary_y=True
                 )
             else:
-                # Se não houver coluna de chuva, plota somente Nível do Rio
                 fig = px.line(
                     plot_data,
                     x='Carimbo de data/hora',
@@ -277,7 +266,6 @@ def main():
         
         st.plotly_chart(fig, use_container_width=True)
 
-        # Statistical summary
         st.subheader("📊 Estatísticas do Período")
         col1, col2, col3 = st.columns(3)
         with col1:
