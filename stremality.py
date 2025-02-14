@@ -14,7 +14,6 @@ st.set_page_config(
     page_icon="🌊"
 )
 
-# Configurando o tema escuro globalmente
 st.markdown("""
     <style>
         .stApp {
@@ -26,6 +25,19 @@ st.markdown("""
             padding: 10px;
             border-radius: 5px;
         }
+        .custom-text{
+            top: 10px;
+            color: rgb(136, 136, 136); 
+            font-size: 1em !important; 
+            position: absolute; 
+            right: 0px; 
+            bottom: -2em;
+        }
+            .custom-text a{
+                color: #00BFFF;
+                text-decoration: none;
+                font-size: 0.9em;
+            }
     </style>
 """, unsafe_allow_html=True)
 
@@ -52,7 +64,7 @@ def load_sheet_data(sheet_id, gid):
         
         if 'Carimbo de data/hora' in df.columns:
             df['Carimbo de data/hora'] = pd.to_datetime(df['Carimbo de data/hora'], dayfirst=True)
-            df['DATA'] = df['Carimbo de data/hora'].dt.date
+            df['DATA'] = pd.to_datetime(df['Carimbo de data/hora']).dt.strftime('%d/%m/%Y')
             df['HORA'] = df['Carimbo de data/hora'].dt.strftime('%H:%M')
             df = df.sort_values(by='Carimbo de data/hora', ascending=True)
 
@@ -74,6 +86,10 @@ def load_sheet_data(sheet_id, gid):
 
 def main():
     st.title("🌊 Monitoramento Hidrológico em Tempo Real")
+    
+
+   
+
     
     selected_station = st.sidebar.radio("Selecione a Estação", list(sheet_config.keys()))
     st.sidebar.write(f"Estação selecionada: **{selected_station}**")
@@ -109,11 +125,6 @@ def main():
             max_value=max_date
         )
         
-        operadores = st.sidebar.multiselect(
-            "Operadores responsáveis:",
-            options=sorted(df['NOME'].unique()),
-            default=df['NOME'].unique()
-        )
         
         view_mode = st.sidebar.selectbox(
             "Modo de Visualização do Gráfico Temporal", 
@@ -122,8 +133,7 @@ def main():
         
         filtered_df = df[
             (df['Carimbo de data/hora'].dt.date >= date_range[0]) &
-            (df['Carimbo de data/hora'].dt.date <= date_range[1]) &
-            (df['NOME'].isin(operadores))
+            (df['Carimbo de data/hora'].dt.date <= date_range[1])
         ]
         
         if filtered_df.empty:
@@ -148,6 +158,11 @@ def main():
             st.metric("Total de Registros", len(filtered_df))
         with col4:
             st.metric("Operadores Ativos", len(filtered_df['NOME'].unique()))
+
+
+        st.markdown("""
+        <p class="custom-text">Desenvolvido por: <a href="https://fabricadesoftware.ifc.edu.br/" target="_blank">Fabrica De Software</a> <br/> Professor Responsável: <a href="https://github.com/ldmfabio" target="_blank">Fábio Longo De Moura</a> <br/> Alunos: <a href="https://github.com/jonatasperaza" target="_blank">Jonatas Peraza</a></p>
+    """, unsafe_allow_html=True)
 
         st.header("📈 Análise Temporal")
 
@@ -314,8 +329,18 @@ def main():
             st.plotly_chart(fig_bar, use_container_width=True)
 
         st.header("📁 Dados Completos")
+        filtered_df = df.drop(columns=['Carimbo de data/hora'], errors='ignore', inplace=False)
+
+        filtered_df['DATA_ORDENACAO'] = pd.to_datetime(filtered_df['DATA'], format='%d/%m/%Y')
+        
+        sorted_df = filtered_df.sort_values(by='DATA_ORDENACAO', ascending=False)
+        
+        sorted_df['DATA'] = sorted_df['DATA_ORDENACAO'].dt.strftime('%d/%m/%Y')
+        
+        sorted_df = sorted_df.drop(columns=['DATA_ORDENACAO'])
+
         st.dataframe(
-            filtered_df.sort_values('Carimbo de data/hora', ascending=False),
+            sorted_df,
             use_container_width=True,
             height=400
         )
