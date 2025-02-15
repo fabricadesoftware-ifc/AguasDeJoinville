@@ -57,13 +57,13 @@ st.markdown("""
             """ , unsafe_allow_html=True)
 
 sheet_config = {
-    "ETA Pirai": {
-        "SHEET_ID": "13mElwgzhSr8ljUrIu_klMsO3rBLtzDF8fYt6aEOOnDg",
-        "GID": "1698452995"
-    },
     "ETA Cubatão": {
         "SHEET_ID": "1AUdMkuChcjdMmvQw_j_0z2MAgLhvfVeZZLZxnG9YETg",
         "GID": "487419985"
+    },
+    "ETA Pirai": {
+        "SHEET_ID": "13mElwgzhSr8ljUrIu_klMsO3rBLtzDF8fYt6aEOOnDg",
+        "GID": "1698452995"
     }
 }
 
