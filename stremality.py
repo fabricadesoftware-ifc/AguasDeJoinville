@@ -125,15 +125,42 @@ def main():
             return
 
         st.sidebar.header("🔍 Filtros")
-        
+
+        time_options = ["Período personalizado", "Últimas 24 horas", "Últimos 7 dias", "Últimos 30 dias"]
+        selected_time_period = st.sidebar.radio("", time_options)
+
         min_date = df['Carimbo de data/hora'].min().date()
         max_date = df['Carimbo de data/hora'].max().date()
-        date_range = st.sidebar.date_input(
-            "Período de análise:",
-            [min_date, max_date],
-            min_value=min_date,
-            max_value=max_date
-        )
+        current_date = datetime.now().date()
+
+        if selected_time_period == "Últimas 24 horas":
+            start_date = (datetime.now() - pd.Timedelta(days=1)).date()
+            end_date = current_date
+            date_range = [start_date, end_date]
+        elif selected_time_period == "Últimos 7 dias":
+            start_date = (datetime.now() - pd.Timedelta(days=7)).date()
+            end_date = current_date
+            date_range = [start_date, end_date]
+        elif selected_time_period == "Últimos 30 dias":
+            start_date = (datetime.now() - pd.Timedelta(days=30)).date()
+            end_date = current_date
+            date_range = [start_date, end_date]
+        else:  # Período personalizado
+            date_range = st.sidebar.date_input(
+                "Selecione o período:",
+                [min_date, max_date],
+                min_value=min_date,
+                max_value=max_date
+            )
+            
+        if isinstance(date_range, list) and len(date_range) == 2:
+            start_date, end_date = date_range
+        else:
+            start_date = min_date
+            end_date = max_date
+            date_range = [start_date, end_date]
+
+        st.sidebar.write(f"Período: de {start_date.strftime('%d/%m/%Y')} até {end_date.strftime('%d/%m/%Y')}")
         
         view_mode = st.sidebar.selectbox(
             "Modo de Visualização do Gráfico Temporal", 
