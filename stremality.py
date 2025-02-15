@@ -329,7 +329,6 @@ def main():
             fig_bar.update_layout(template="plotly_dark")
             st.plotly_chart(fig_bar, use_container_width=True)
 
-        st.header("📁 Dados Completos")
         filtered_df = df.drop(columns=['Carimbo de data/hora'], errors='ignore', inplace=False)
 
         filtered_df['DATA_ORDENACAO'] = pd.to_datetime(filtered_df['DATA'], format='%d/%m/%Y')
@@ -343,15 +342,11 @@ def main():
             sorted_df['MES_ANO'] = df.apply(lambda row: mes_ano_extenso(row['Carimbo de data/hora'].month, row['Carimbo de data/hora'].year), axis=1)
         sorted_df = sorted_df
 
-        st.dataframe(
-            sorted_df,
-            use_container_width=True,
-            height=400
-        )
+
 
         df_mm_mes = sorted_df.groupby(['MES_ANO'])['Chuva (mm)'].sum()
         # df_mm_mes["nome_mes"] = nome_mes_ano(sorted_df['MES_ANO'].unique().tolist())
-        st.write(df_mm_mes)
+        #st.write(df_mm_mes)
 
         fig = px.bar(
                 df_mm_mes,
@@ -371,6 +366,14 @@ def main():
         )
 
         st.plotly_chart(fig, use_container_width=True)
+
+        st.header("📁 Dados Completos")
+
+        st.dataframe(
+            sorted_df,
+            use_container_width=True,
+            height=400
+        )
 
         
     except Exception as e:
