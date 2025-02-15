@@ -1,8 +1,8 @@
-import streamlit as st # type: ignore
-import pandas as pd # type: ignore
-import plotly.express as px # type: ignore
-import plotly.graph_objects as go # type: ignore
-from plotly.subplots import make_subplots # type: ignore
+import streamlit as st  # type: ignore
+import pandas as pd  # type: ignore
+import plotly.express as px  # type: ignore
+import plotly.graph_objects as go  # type: ignore
+from plotly.subplots import make_subplots  # type: ignore
 from functions import mes_ano_extenso, nome_mes_ano
 from datetime import datetime
 import traceback
@@ -76,8 +76,9 @@ def load_sheet_data(sheet_id, gid):
         df = pd.read_csv(io.StringIO(response.text))
         
         if 'Carimbo de data/hora' in df.columns:
+            # Converte usando dayfirst=True, pois as datas estão no formato DD/MM/YYYY
             df['Carimbo de data/hora'] = pd.to_datetime(df['Carimbo de data/hora'], dayfirst=True)
-            df['DATA'] = pd.to_datetime(df['Carimbo de data/hora']).dt.strftime('%d/%m/%Y')
+            df['DATA'] = df['Carimbo de data/hora'].dt.strftime('%d/%m/%Y')
             df['HORA'] = df['Carimbo de data/hora'].dt.strftime('%H:%M')
             df = df.sort_values(by='Carimbo de data/hora', ascending=True)
 
@@ -101,7 +102,6 @@ def main():
     st.title("🌊 Monitoramento Hidrológico em Tempo Real")
     
     selected_station = st.sidebar.radio("Selecione a Estação", list(sheet_config.keys()))
-
     st.sidebar.write(f"Estação selecionada: **{selected_station}**")
     
     if st.button("🔄 Atualizar Dados"):
@@ -124,10 +124,8 @@ def main():
             st.error(f"Colunas obrigatórias faltando: {', '.join(missing_cols)}")
             return
 
-        st.sidebar.header("🔍 Filtros")
-
-        time_options = ["Período personalizado", "Últimas 24 horas", "Últimos 7 dias", "Últimos 30 dias"]
-        selected_time_period = st.sidebar.radio("", time_options)
+        time_options = ["Período personalizado", "Últimas 24 horas", "Últimos 7 dias", "Últimos 30 dias", "Ultimo Ano"]
+        selected_time_period = st.sidebar.radio("Selecione o Perído", time_options)
 
         min_date = df['Carimbo de data/hora'].min().date()
         max_date = df['Carimbo de data/hora'].max().date()
@@ -145,9 +143,13 @@ def main():
             start_date = (datetime.now() - pd.Timedelta(days=30)).date()
             end_date = current_date
             date_range = [start_date, end_date]
-        else:  # Período personalizado
+        elif selected_time_period == "Ultimo Ano":
+            start_date = (datetime.now() - pd.Timedelta(days=365)).date()
+            end_date = current_date
+            date_range = [start_date, end_date]
+        else:
             date_range = st.sidebar.date_input(
-                "Selecione o período:",
+                "Selecione as datas",
                 [min_date, max_date],
                 min_value=min_date,
                 max_value=max_date
@@ -206,15 +208,22 @@ def main():
         filtered_df_valid = filtered_df_valid[filtered_df_valid['Carimbo de data/hora'] >= time_filter]
 
         if view_mode == "Agregado (média diária)":
-            agg_df = filtered_df_valid.groupby(["DATA", "NOME"], as_index=False).agg({
+            # Em vez de agrupar por ["DATA", "NOME"], faça apenas:
+            agg_df = filtered_df_valid.groupby("DATA", as_index=False).agg({
                 "Nível do Rio (m)": ["mean", "min", "max"]
             })
-            agg_df.columns = ["DATA", "NOME", "media", "minimo", "maximo"]
-            agg_df["Carimbo de data/hora"] = pd.to_datetime(agg_df["DATA"])
-            plot_data = agg_df
-            
+            agg_df.columns = ["DATA", "media", "minimo", "maximo"]
+
+            # Converter a coluna DATA para datetime no formato DD/MM/YYYY
+            agg_df["Carimbo de data/hora"] = pd.to_datetime(agg_df["DATA"], format='%d/%m/%Y')
+
+            # Ordenar por data para não “pular” pontos
+            agg_df = agg_df.sort_values("Carimbo de data/hora")
+
+            plot_data= agg_df.copy()
+
             fig = px.line(
-                plot_data,
+                agg_df,
                 x='Carimbo de data/hora',
                 y='media',
                 title="Variação do Nível do Rio - Agregado (média diária)",
@@ -222,8 +231,7 @@ def main():
                 hover_data={
                     'media': ':.2f',
                     'minimo': ':.2f',
-                    'maximo': ':.2f',
-                    'NOME': True
+                    'maximo': ':.2f'
                 }
             )
         else:
@@ -359,21 +367,14 @@ def main():
         filtered_df = df.drop(columns=['Carimbo de data/hora'], errors='ignore', inplace=False)
 
         filtered_df['DATA_ORDENACAO'] = pd.to_datetime(filtered_df['DATA'], format='%d/%m/%Y')
-        
         sorted_df = filtered_df.sort_values(by='DATA_ORDENACAO', ascending=False)
-        
         sorted_df['DATA'] = sorted_df['DATA_ORDENACAO'].dt.strftime('%d/%m/%Y')
-        
         sorted_df = sorted_df.drop(columns=['DATA_ORDENACAO'])
         if 'Carimbo de data/hora' in df.columns:
             sorted_df['MES_ANO'] = df.apply(lambda row: mes_ano_extenso(row['Carimbo de data/hora'].month, row['Carimbo de data/hora'].year), axis=1)
         sorted_df = sorted_df
 
-
-
         df_mm_mes = sorted_df.groupby(['MES_ANO'])['Chuva (mm)'].sum()
-        # df_mm_mes["nome_mes"] = nome_mes_ano(sorted_df['MES_ANO'].unique().tolist())
-        #st.write(df_mm_mes)
 
         fig = px.bar(
                 df_mm_mes,
@@ -386,8 +387,6 @@ def main():
             template="plotly_dark",
             xaxis=dict(
                 tickangle=-90,
-                # tickmode='linear',
-                # tickvals=df_mm_mes.index
                 title='Meses'
             ),
         )
@@ -395,14 +394,12 @@ def main():
         st.plotly_chart(fig, use_container_width=True)
 
         st.header("📁 Dados Completos")
-
         st.dataframe(
             sorted_df,
             use_container_width=True,
             height=400
         )
 
-        
     except Exception as e:
         st.error(f"Erro na aplicação: {str(e)}")
         st.code(traceback.format_exc(), language='bash')
