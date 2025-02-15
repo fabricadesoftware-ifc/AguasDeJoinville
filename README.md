@@ -63,27 +63,11 @@ Para facilitar a análise, o sistema permite filtrar os dados por:
 
 ---
 
-## 🚨 Solução de Problemas
-
-Caso encontre alguma dificuldade, tente as seguintes soluções:
-1. 🔄 Atualize a página.
-2. 🌐 Verifique sua conexão com a internet.
-3. 🎯 Confira se os filtros selecionados estão corretos.
-4. 🛠 Se o problema persistir, entre em contato com a equipe de suporte.
-
----
-
-## 🛠 Tecnologias Utilizadas
-
-O sistema foi desenvolvido utilizando as seguintes tecnologias:
-- **Frontend:** streamlit
-- **Hospedagem:** streamlit share
-
----
-
 ## 👨‍💻 Desenvolvedores
 
 Este sistema foi criado e mantido por:
+- **Fabrica De Software** - [Github](https://github.com/fabricadesoftware-ifc) | [Linkedin](https://linkedin.com/company/fabricadesoftware-ifc/)
+- **Fabio Longo De Moura** - [Github](https://github.com/ldmfabio) | [Linkedin](https://www.linkedin.com/in/ldmfabio/)
 - **Jonatas Silva Peraza** - [GitHub](https://github.com/jonatasperaza) | [LinkedIn](https://www.linkedin.com/in/jonatas-silva-peraza-aa1648294/)  
 
 Sinta-se à vontade para contribuir ou reportar melhorias!
