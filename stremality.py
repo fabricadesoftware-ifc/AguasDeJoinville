@@ -67,7 +67,7 @@ sheet_config = {
     }
 }
 
-@st.cache_data(ttl=6000)
+@st.cache_data(ttl=3600)
 def load_sheet_data(sheet_id, gid):
     try:
         url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&gid={gid}"
@@ -76,7 +76,6 @@ def load_sheet_data(sheet_id, gid):
         df = pd.read_csv(io.StringIO(response.text))
         
         if 'Carimbo de data/hora' in df.columns:
-            # Converte usando dayfirst=True, pois as datas estão no formato DD/MM/YYYY
             df['Carimbo de data/hora'] = pd.to_datetime(df['Carimbo de data/hora'], dayfirst=True)
             df['DATA'] = df['Carimbo de data/hora'].dt.strftime('%d/%m/%Y')
             df['HORA'] = df['Carimbo de data/hora'].dt.strftime('%H:%M')
