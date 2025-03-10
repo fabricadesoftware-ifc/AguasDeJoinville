@@ -5,8 +5,9 @@ import plotly.graph_objects as go  # type: ignore
 from plotly.subplots import make_subplots  # type: ignore
 from functions import mes_ano_extenso, nome_mes_ano
 from datetime import datetime
+from prophet import Prophet # type: ignore
 import traceback
-import requests
+import requests # type: ignore
 import io
 
 st.set_page_config(
@@ -392,13 +393,109 @@ def main():
 
         st.plotly_chart(fig, use_container_width=True)
 
+
+        try:
+            df['data'] = pd.to_datetime(df['Carimbo de data/hora'])
+
+            df_mensal = df.resample('ME', on='data')['Chuva (mm)'].sum().reset_index()
+
+            df_prophet = df_mensal.rename(columns={'data': 'ds', 'Chuva (mm)': 'y'})
+         
+            model = Prophet()
+
+            model.fit(df_prophet)
+
+            future = model.make_future_dataframe(periods=12, freq='ME')
+
+            forecast = model.predict(future)
+
+            forecast['yhat'] = forecast['yhat'].clip(lower=0).round(2)
+
+            fig = go.Figure()
+
+            fig.add_trace(go.Scatter
+                (x=df_prophet['ds'], y=df_prophet['y'],
+                mode='lines+markers', name='Dados Históricos'))
+            
+            fig.add_trace(go.Scatter
+                (x=forecast['ds'], y=forecast['yhat'],
+                mode='lines', name='Previsão'))
+            
+            fig.add_trace(go.Scatter
+                (x=forecast['ds'], y=forecast['yhat_upper'],
+                mode='lines', name='Limite Superior', line=dict(dash='dash')))
+            
+            fig.add_trace(go.Scatter
+                (x=forecast['ds'], y=forecast['yhat_lower'],
+                mode='lines', name='Limite Inferior', line=dict(dash='dash')))
+            
+            fig.update_layout(
+                template="plotly_dark",
+                title="Previsão de Chuva",
+                xaxis_title="Data",
+                yaxis_title="Chuva (mm)",
+                hovermode="x unified"
+            )
+
+            st.header("📈 Previsão de Chuva")
+
+            st.plotly_chart(fig, use_container_width=True)
+
+        except:
+            st.error("Erro ao gerar previsão de chuva")
+
+        try:
+            df['data'] = pd.to_datetime(df['Carimbo de data/hora'])
+
+            df_mensal = df.resample('ME', on='data')['Nível do Rio (m)'].mean().reset_index()
+
+            df_prophet = df_mensal.rename(columns={'data': 'ds', 'Nível do Rio (m)': 'y'})
+         
+            model = Prophet()
+
+            model.fit(df_prophet)
+
+            future = model.make_future_dataframe(periods=12, freq='ME')
+            forecast = model.predict(future)
+
+            forecast['yhat'] = forecast['yhat'].clip(lower=0).round(2)
+
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=df_prophet['ds'], y=df_prophet['y'],
+                         mode='lines+markers', name='Dados Históricos'))
+
+
+            fig.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'],
+                                    mode='lines', name='Previsão'))
+
+
+            fig.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat_upper'],
+                                    mode='lines', name='Limite Superior', line=dict(dash='dash')))
+            fig.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat_lower'],
+                                    mode='lines', name='Limite Inferior', line=dict(dash='dash')))
+
+            fig.update_layout(
+                template="plotly_dark",
+                title="Previsão de Nível do Rio",
+                xaxis_title="Data",
+                yaxis_title="Nível do Rio (m)",
+                hovermode="x unified"
+            )
+
+            st.header("📈 Previsão de Nível do Rio")
+
+            st.plotly_chart(fig)
+
+        except Exception as e:
+            st.error(f"Erro ao gerar previsão de nível do rio: {str(e)}")
+
         st.header("📁 Dados Completos")
         st.dataframe(
             sorted_df,
             use_container_width=True,
             height=400
         )
-
+        
     except Exception as e:
         st.error(f"Erro na aplicação: {str(e)}")
         st.code(traceback.format_exc(), language='bash')
