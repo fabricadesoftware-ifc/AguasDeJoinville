@@ -1,0 +1,9 @@
+services:
+  streamlit:
+    container_name: "aguas_de_joinville_streamlit"
+    build:
+      dockerfile: Dockerfile
+      context: ./
+
+    ports:
+      - "8501:8501"
