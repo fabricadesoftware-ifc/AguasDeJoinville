@@ -3,7 +3,6 @@ import pandas as pd  # type: ignore
 import plotly.express as px  # type: ignore
 import plotly.graph_objects as go  # type: ignore
 from plotly.subplots import make_subplots  # type: ignore
-from functions import mes_ano_extenso, nome_mes_ano
 from datetime import datetime
 from prophet import Prophet # type: ignore
 import traceback
@@ -15,6 +14,10 @@ st.set_page_config(
     layout="wide",
     page_icon="🌊"
 )
+
+def mes_ano_extenso(mes, ano):
+    meses = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
+    return f'{ano}-{meses[mes - 1]}'
 
 st.markdown("""
     <style>
