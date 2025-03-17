@@ -7,7 +7,6 @@ from datetime import datetime
 from prophet import Prophet # type: ignore
 import traceback
 import requests # type: ignore
-import chardet # type: ignore
 import io
 
 st.set_page_config(
