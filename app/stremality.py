@@ -3,7 +3,6 @@ import pandas as pd  # type: ignore
 import plotly.express as px  # type: ignore
 import plotly.graph_objects as go  # type: ignore
 from plotly.subplots import make_subplots  # type: ignore
-from functions import mes_ano_extenso, nome_mes_ano
 from datetime import datetime
 from prophet import Prophet # type: ignore
 import traceback
@@ -15,6 +14,10 @@ st.set_page_config(
     layout="wide",
     page_icon="🌊"
 )
+
+def mes_ano_extenso(mes, ano):
+    meses = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
+    return f'{ano}-{meses[mes - 1]}'
 
 st.markdown("""
     <style>
@@ -71,10 +74,11 @@ sheet_config = {
 @st.cache_data(ttl=3600)
 def load_sheet_data(sheet_id, gid):
     try:
-        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&gid={gid}"
+        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
         response = requests.get(url)
-        response.raise_for_status() 
-        df = pd.read_csv(io.StringIO(response.text))
+        response.raise_for_status()
+        print(response.headers.get('Content-Type'))
+        df = pd.read_csv(io.BytesIO(response.content), encoding='utf-8')
         
         if 'Carimbo de data/hora' in df.columns:
             df['Carimbo de data/hora'] = pd.to_datetime(df['Carimbo de data/hora'], dayfirst=True)
@@ -83,9 +87,12 @@ def load_sheet_data(sheet_id, gid):
             df = df.sort_values(by='Carimbo de data/hora', ascending=True)
 
         if 'Nível do Rio (m)' in df.columns:
-            df['Nível do Rio (m)'] = pd.to_numeric(df['Nível do Rio (m)'].astype(str).str.replace(',', '.'), errors='coerce')
+            df['Nível do Rio (m)'] = df['Nível do Rio (m)'].str.replace('m', '')  # Remover "m"
+            df['Nível do Rio (m)'] = pd.to_numeric(df['Nível do Rio (m)'].str.replace(',', '.'), errors='coerce')  # Convertendo para numérico
+
 
         if 'Chuva (mm)' in df.columns:
+            df['Chuva (mm)'] = df['Chuva (mm)'].str.replace('mm', '')  # Remover "mm"
             df['Chuva (mm)'] = pd.to_numeric(df['Chuva (mm)'].astype(str).str.replace(',', '.'), errors='coerce')
 
         return df
