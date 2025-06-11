@@ -11,22 +11,25 @@ Seja bem-vindo ao **Sistema de Monitoramento Hidrológico**, um painel digital i
 ✅ Visualização de gráficos dinâmicos  
 ✅ Consulta de dados históricos  
 ✅ Exibição de estatísticas relevantes, como nível médio e máximo dos rios  
-✅ Controle do trabalho dos operadores  
+✅ Controle do trabalho dos operadores
 
 ---
 
 ## 🎯 Como Utilizar o Sistema
 
 ### 📌 Tela Principal
+
 - Exibe o título **"Monitoramento Hidrológico em Tempo Real"**.
 - Contém um botão de **atualização (🔄)** para obter os dados mais recentes.
 
 ### 📌 Menu Lateral
+
 1. Escolha a ETA desejada para monitoramento.
 2. Defina o período de análise.
 3. Selecione os operadores que deseja visualizar.
 
 ### 📌 Visualizações Disponíveis
+
 📊 **Indicadores Principais**: Apresenta o nível médio do rio, a última medição e o total de registros.  
 📈 **Gráfico de Nível do Rio**: Monitore a evolução do nível do rio ao longo do tempo.  
 📉 **Estatísticas**: Exibição de valores médios, máximos e mínimos.  
@@ -38,6 +41,7 @@ Seja bem-vindo ao **Sistema de Monitoramento Hidrológico**, um painel digital i
 ## 🔍 Filtros Disponíveis
 
 Para facilitar a análise, o sistema permite filtrar os dados por:
+
 - 📆 **Períodos de Tempo**:
   - Últimas 24 horas
   - Últimos 7 dias
@@ -50,7 +54,7 @@ Para facilitar a análise, o sistema permite filtrar os dados por:
 ## 📊 Modos de Visualização
 
 🔍 **Modo Detalhado**: Exibe todas as medições registradas.  
-📊 **Modo Agregado**: Apresenta médias diárias para uma visão mais geral e objetiva.  
+📊 **Modo Agregado**: Apresenta médias diárias para uma visão mais geral e objetiva.
 
 ---
 
@@ -66,13 +70,14 @@ Para facilitar a análise, o sistema permite filtrar os dados por:
 ## 👨‍💻 Desenvolvedores
 
 Este sistema foi criado e mantido por:
+
 - **Fabrica De Software** - [Github](https://github.com/fabricadesoftware-ifc) | [Linkedin](https://linkedin.com/company/fabricadesoftware-ifc/)
 - **Fabio Longo De Moura** - [Github](https://github.com/ldmfabio) | [Linkedin](https://www.linkedin.com/in/ldmfabio/)
-- **Jonatas Silva Peraza** - [GitHub](https://github.com/jonatasperaza) | [LinkedIn](https://www.linkedin.com/in/jonatas-silva-peraza-aa1648294/)  
+- **Jonatas Silva Peraza** - [GitHub](https://github.com/jonatasperaza) | [LinkedIn](https://www.linkedin.com/in/jonatas-silva-peraza-aa1648294/)
+- **Nicole Ferreira Mello** - [GitHub](https://github.com/nicolefemello) | [LinkedIn](https://www.linkedin.com/in/nicole-ferreira-mello-3360172bb/)
 
 Sinta-se à vontade para contribuir ou reportar melhorias!
 
 ---
 
 **💧 Monitoramento Inteligente para um Futuro Sustentável! 💙**
-
