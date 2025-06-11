@@ -1,0 +1,29 @@
+.version {
+  position: absolute;
+  bottom: 0;
+  color: #ffffff;
+  opacity: 0.4;
+}
+
+.custom-text {
+  text-align: right;
+  color: rgb(136, 136, 136);
+  font-size: 1em !important;
+
+  a {
+    color: #00bfff;
+    text-decoration: none;
+    font-size: 0.9em;
+  }
+}
+
+.stMetric {
+  background-color: #262730;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.stApp {
+  background-color: #0e1117;
+  color: #fafafa;
+}
