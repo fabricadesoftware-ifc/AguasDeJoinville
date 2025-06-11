@@ -2,6 +2,7 @@ from src.components.main_indicators import main_indicators
 from src.components.temporal_analysis import analise_temporal_section
 from src.components.period_statistics import period_statistics
 from src.components.data_distribution import data_distribution
+from src.components.rain_forecast import rain_forecast
 
 
 def main(df, date_range, view_mode):
@@ -25,3 +26,4 @@ def main(df, date_range, view_mode):
     plot_data = analise_temporal_section(filtered_df_valid, view_mode)
     period_statistics(plot_data, view_mode)
     sorted_df = data_distribution(filtered_df, df)
+    rain_forecast(df)
