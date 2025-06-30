@@ -23,7 +23,7 @@ def router(station, date_range, view_mode):
             st.warning("Nenhum dado encontrado na planilha!")
             return
 
-        required_cols = ["Carimbo de data/hora", "NOME", "Nível do Rio (m)"]
+        required_cols = ["Carimbo de data/hora", "Nível do Rio (m)"]
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
             st.error(f"Colunas obrigatórias faltando: {', '.join(missing_cols)}")

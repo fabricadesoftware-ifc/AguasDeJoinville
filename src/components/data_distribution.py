@@ -5,7 +5,7 @@ from src.utils.utils import mes_ano_extenso
 
 
 def data_distribution(filtered_df, df):
-    # st.header("📌 Distribuição de Dados")
+    st.header("📌 Distribuição de Dados")
 
     col5, col6 = st.columns(2)
 
