@@ -30,4 +30,5 @@ def main(df, date_range, view_mode):
     sorted_df = data_distribution(filtered_df, df)
     rain_forecast(df)
     river_level_forecast(df)
+    sorted_df = sorted_df.drop(columns=["NOME"], errors="ignore")
     complete_data(sorted_df)
